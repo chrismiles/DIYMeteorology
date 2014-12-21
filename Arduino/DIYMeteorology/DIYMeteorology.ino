@@ -379,6 +379,14 @@ void decodeMessageForOregonTemperature(const byte* data)
   // TODO: battery low flag
   // TODO: checksum
 
+  Serial.print("D,THGR122NX,");
+  Serial.print(channel);
+  Serial.print(",");
+  Serial.print(temperature);
+  Serial.print(",");
+  Serial.print(humidity);
+  Serial.print("\n");
+
 //  // Get the temperature.
 //  char temp[6];
 //  char *tempptr = &temp[0];
