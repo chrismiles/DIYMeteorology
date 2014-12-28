@@ -20,6 +20,8 @@ import sys
 
 ch1_public_key = None
 ch1_private_key = None
+ch4_public_key = None
+ch4_private_key = None
 
 
 def publish_temperature_to_data_sparkfun(channel, temperature, humidity):
@@ -31,6 +33,9 @@ def publish_temperature_to_data_sparkfun(channel, temperature, humidity):
     if channel == 1:
         public_key = ch1_public_key
         private_key = ch1_private_key
+    elif channel == 4:
+        public_key = ch4_public_key
+        private_key = ch4_private_key
 
     if public_key and private_key:
         host = "data.sparkfun.com"
@@ -67,9 +72,10 @@ def parse_data_line(line):
             print "WARNING: data line ignored due to not beginning with 'D' field: %s" %(row,)
             continue
 
-        if row[1] == 'THGR122NX':
+        deviceType = row[1]
+        if deviceType == 'THGR122NX' or deviceType == 'RTGR328N':
             (channel, temperature, humidity) = parse_fields_THGR122NX(row[2:])
-            print "THGR122NX: channel=%d temperature=%f˚C humidity=%f%%" %(channel, temperature, humidity) #DEBUG
+            print "%s: channel=%d temperature=%f˚C humidity=%f%%" %(deviceType, channel, temperature, humidity) #DEBUG
             publish_temperature_to_data_sparkfun(channel, temperature, humidity)
 
 
@@ -120,18 +126,26 @@ def main(argv=None):
 
     parser.add_option('', '--sf_ch1_pubkey', dest='sf_ch1_pubkey',
         help="data.sparkfun temperature ch1 public key.")
-
     parser.add_option('', '--sf_ch1_prikey', dest='sf_ch1_prikey',
         help="data.sparkfun temperature ch1 private key.")
+
+    parser.add_option('', '--sf_ch4_pubkey', dest='sf_ch4_pubkey',
+        help="data.sparkfun temperature ch4 public key.")
+    parser.add_option('', '--sf_ch4_prikey', dest='sf_ch4_prikey',
+        help="data.sparkfun temperature ch4 private key.")
+
 
     # Parse options & arguments
     (options, args) = parser.parse_args(argv[1:])
 
-    global ch1_private_key
-    global ch1_public_key
+    global ch1_private_key, ch1_public_key
+    global ch4_private_key, ch4_public_key
 
     ch1_private_key = options.sf_ch1_prikey
     ch1_public_key = options.sf_ch1_pubkey
+
+    ch4_private_key = options.sf_ch4_prikey
+    ch4_public_key = options.sf_ch4_pubkey
 
     port = '/dev/tty.usbmodem1421'
     baud = 115200
