@@ -328,6 +328,12 @@ void decodeMessageForSensorID(int sensorID, const byte* data)
     // Rain gauge
     decodeMessageForRGR968(data);
   }
+  else if ((sensorID & 0x0CC3) == 0x0CC3)
+  {
+    // Temperature/Barometer: RTGR328N
+    //   RTGR328N is xCC3 (last 12 bits only)
+    decodeMessageForRTGR328N(data);    
+  }
   else
   {
     Serial.print("!!! No decoder implemented for SensorID: ");
@@ -341,19 +347,45 @@ void decodeMessageForTHGR122NX(const byte* data)
 {
   // Temperature/Barometer
   // SensorID: 0x1D20
-  Serial.print(" --> THGR122NX");
-  decodeMessageForOregonTemperature(data);
+  char *const deviceType = "THGR122NX";
+  
+  // TODO: channel is shared by all v2.1/3.0 sensors
+  int channel = decodeChannelForStandardTempSensor(data);
+  
+  decodeMessageForOregonTemperature(deviceType, channel, data);
 }
 
-void decodeMessageForOregonTemperature(const byte* data)
+void decodeMessageForRTGR328N(const byte* data)
+{
+  // Temperature/Barometer
+  // SensorID: 0x*CC3
+  
+  char *const deviceType = "RTGR328N";
+  int channel = decodeChannelForRTGR328N(data);
+  decodeMessageForOregonTemperature(deviceType, channel, data);
+}
+
+int decodeChannelForStandardTempSensor(const byte* data)
+{
+  // Equivalent of log(v, 2) + 1
+  int const channel = (log((int)(data[2] >> 4)) / log(2)) + 1;
+  return channel;
+}
+
+int decodeChannelForRTGR328N(const byte* data)
+{
+  // value is channel number, simple as that
+  int const channel = (int)(data[2] >> 4);
+  return channel;
+}
+
+void decodeMessageForOregonTemperature(const char* deviceType, int const channel, const byte* data)
 {
   // Message Length: 17 nibbles
   
-  // TODO: channel is shared by all v2.1/3.0 sensors
-//  int channel = 1 << ((int)(data[2] >> 4) - 1);
-  // Equivalent of log(v, 2) + 1
-  int channel = (log((int)(data[2] >> 4)) / log(2)) + 1;
-  
+  Serial.print(" --> ");
+  Serial.print(deviceType);
+    
   Serial.print(" channel=");
   Serial.print(channel);
   Serial.print("   ");
@@ -379,7 +411,9 @@ void decodeMessageForOregonTemperature(const byte* data)
   // TODO: battery low flag
   // TODO: checksum
 
-  Serial.print("D,THGR122NX,");
+  Serial.print("D,");
+  Serial.print(deviceType);
+  Serial.print(",");
   Serial.print(channel);
   Serial.print(",");
   Serial.print(temperature);
