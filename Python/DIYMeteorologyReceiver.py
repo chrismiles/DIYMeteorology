@@ -11,10 +11,40 @@ __version__ = '0.0.1'
 
 
 import csv
+import httplib
 import optparse
 import os
 import serial
 import sys
+
+
+ch1_public_key = None
+ch1_private_key = None
+
+
+def publish_temperature_to_data_sparkfun(channel, temperature, humidity):
+    # http://data.sparkfun.com/input/[publicKey]?private_key=[privateKey]&humidity=[value]&temperature=[value]
+
+    public_key = None
+    private_key = None
+
+    if channel == 1:
+        public_key = ch1_public_key
+        private_key = ch1_private_key
+
+    if public_key and private_key:
+        host = "data.sparkfun.com"
+        path = "/input/%s?private_key=%s&humidity=%f&temperature=%f" %(public_key, private_key, humidity, temperature)
+        print "http://%s%s" %(host, path)
+
+        conn = httplib.HTTPConnection(host)
+        conn.request("GET", path)
+        r1 = conn.getresponse()
+        print(r1.status, r1.reason)
+        conn.close()
+
+    else:
+        print "WARNING: no public or private key set for data.sparkfun temperature channel %d" %(channel,)
 
 
 def parse_fields_THGR122NX(fields):
@@ -22,7 +52,7 @@ def parse_fields_THGR122NX(fields):
     temperature = float(fields[1])
     humidity = float(fields[2])
 
-    print "THGR122NX: channel=%d temperature=%f˚C humidity=%f%%" %(channel, temperature, humidity) #DEBUG
+    return (channel, temperature, humidity)
 
 
 def parse_data_line(line):
@@ -38,7 +68,9 @@ def parse_data_line(line):
             continue
 
         if row[1] == 'THGR122NX':
-            parse_fields_THGR122NX(row[2:])
+            (channel, temperature, humidity) = parse_fields_THGR122NX(row[2:])
+            print "THGR122NX: channel=%d temperature=%f˚C humidity=%f%%" %(channel, temperature, humidity) #DEBUG
+            publish_temperature_to_data_sparkfun(channel, temperature, humidity)
 
 
 def decode_line(line):
@@ -86,9 +118,20 @@ def main(argv=None):
         metavar="SERIAL_BAUD", default=115200,
         help="Specify serial baud rate for connecting with device.")
 
+    parser.add_option('', '--sf_ch1_pubkey', dest='sf_ch1_pubkey',
+        help="data.sparkfun temperature ch1 public key.")
+
+    parser.add_option('', '--sf_ch1_prikey', dest='sf_ch1_prikey',
+        help="data.sparkfun temperature ch1 private key.")
+
     # Parse options & arguments
     (options, args) = parser.parse_args(argv[1:])
 
+    global ch1_private_key
+    global ch1_public_key
+
+    ch1_private_key = options.sf_ch1_prikey
+    ch1_public_key = options.sf_ch1_pubkey
 
     port = '/dev/tty.usbmodem1421'
     baud = 115200
