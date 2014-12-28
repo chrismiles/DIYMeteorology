@@ -410,6 +410,13 @@ void decodeMessageForOregonTemperature(const char* deviceType, int const channel
   
   // TODO: battery low flag
   // TODO: checksum
+  
+  // TODO: replace this hack with checksum'ing and proper decoding for RTGR328N
+  if (strcmp(deviceType, "RTGR328N") == 0 && temperature < 0)
+  {
+    Serial.println("!! Negative temperature from RTGR328N ignored - RTGR328N decoding needs improvement");
+    return;
+  }
 
   Serial.print("D,");
   Serial.print(deviceType);
