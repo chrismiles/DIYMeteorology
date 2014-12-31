@@ -317,7 +317,7 @@ void decodeMessageForSensorID(int sensorID, const byte* data)
     // Temperature/Barometer: THGR122NX
     decodeMessageForTHGR122NX(data);
   }
-  else if (sensorID == 0xF824 || sensorID == 0xF8B4 || ((sensorID & 0x0CCC) == 0x0CCC) || ((sensorID & 0xFFFF) == 0xEC40))
+  else if (sensorID == 0xF824 || sensorID == 0xF8B4 || ((sensorID & 0x0FFF) == 0x0CCC) || ((sensorID & 0xFFFF) == 0xEC40))
   {
     // Temperature/Barometer: THGR122NX, THGN801, THGR810, THGR810
     //   THGR328N is xCCC (last 12 bits only)
@@ -328,10 +328,11 @@ void decodeMessageForSensorID(int sensorID, const byte* data)
     // Rain gauge
     decodeMessageForRGR968(data);
   }
-  else if ((sensorID & 0x0CC3) == 0x0CC3)
+  else if ((sensorID & 0x0FFF) == 0x0CC3)
   {
     // Temperature/Barometer: RTGR328N
-    //   RTGR328N is xCC3 (last 12 bits only)
+    //   RTGR328N is xCC3 (last 12 bits only) for thermo
+    //   RTGR328N has other sensorID variations for time/date broadcasting
     decodeMessageForRTGR328N(data);    
   }
   else
@@ -411,13 +412,6 @@ void decodeMessageForOregonTemperature(const char* deviceType, int const channel
   // TODO: battery low flag
   // TODO: checksum
   
-  // TODO: replace this hack with checksum'ing and proper decoding for RTGR328N
-  if (strcmp(deviceType, "RTGR328N") == 0 && temperature < 0)
-  {
-    Serial.println("!! Negative temperature from RTGR328N ignored - RTGR328N decoding needs improvement");
-    return;
-  }
-
   Serial.print("D,");
   Serial.print(deviceType);
   Serial.print(",");
