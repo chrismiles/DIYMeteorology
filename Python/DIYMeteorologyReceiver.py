@@ -120,9 +120,12 @@ def main(argv=None):
     #     help="suppress output (excluding errors)")
 
     # Options expecting values
+    parser.add_option('-p', '--serialport', dest='serialport',
+        metavar="SERIAL_PORT", default="/dev/tty.usbmodem1421",
+        help="Specify serial port device for connecting with device (e.g. /dev/tty.usbmodem3d11).")
     parser.add_option('-b', '--serialbaud', dest='serialbaud',
         metavar="SERIAL_BAUD", default=115200,
-        help="Specify serial baud rate for connecting with device.")
+        help="Specify serial baud rate for connecting with device (e.g. 115200).")
 
     parser.add_option('', '--sf_ch1_pubkey', dest='sf_ch1_pubkey',
         help="data.sparkfun temperature ch1 public key.")
@@ -147,10 +150,11 @@ def main(argv=None):
     ch4_private_key = options.sf_ch4_prikey
     ch4_public_key = options.sf_ch4_pubkey
 
-    port = '/dev/tty.usbmodem1421'
-    baud = 115200
+    port = options.serialport  # '/dev/tty.usbmodem1421'
+    baud = int(options.serialbaud)  # 115200
 
-    read_from_serial('/dev/tty.usbmodem1421', 115200)
+    #read_from_serial('/dev/tty.usbmodem1421', 115200)
+    read_from_serial(port, baud)
 
 
 if __name__ == "__main__":
