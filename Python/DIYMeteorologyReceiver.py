@@ -76,7 +76,12 @@ def parse_data_line(line):
         if deviceType == 'THGR122NX' or deviceType == 'RTGR328N':
             (channel, temperature, humidity) = parse_fields_THGR122NX(row[2:])
             print "%s: channel=%d temperature=%f˚C humidity=%f%%" %(deviceType, channel, temperature, humidity) #DEBUG
-            publish_temperature_to_data_sparkfun(channel, temperature, humidity)
+
+            try:
+                publish_temperature_to_data_sparkfun(channel, temperature, humidity)
+            except:
+                print "!!! Exception caught while publishing to data.sparkfun:",sys.exc_info()[0]
+
 
 
 def decode_line(line):
@@ -92,8 +97,11 @@ def serial_data(port, baudrate):
 
 def read_from_serial(port, baudrate):
     for line in serial_data(port, baudrate):
-        print line.strip() #DEBUG
-        decode_line(line)
+        #print line.strip() #DEBUG
+        try:
+            decode_line(line)
+        except:
+            print "!!! Exception caught while reading line: %s\n%s" %(line,sys.exc_info()[0])
 
 
 def main(argv=None):
