@@ -5,7 +5,7 @@
 '''
 
 __author__ = 'Chris Miles'
-__copyright__ = '(c) Chris Miles 2014. All rights reserved.'
+__copyright__ = '(c) Chris Miles 2014-2015. All rights reserved.'
 __license__ = 'MIT http://opensource.org/licenses/mit-license.php'
 __version__ = '0.0.1'
 
@@ -18,10 +18,7 @@ import serial
 import sys
 
 
-ch1_public_key = None
-ch1_private_key = None
-ch4_public_key = None
-ch4_private_key = None
+config = None
 
 
 def publish_temperature_to_data_sparkfun(channel, temperature, humidity):
@@ -30,12 +27,10 @@ def publish_temperature_to_data_sparkfun(channel, temperature, humidity):
     public_key = None
     private_key = None
 
-    if channel == 1:
-        public_key = ch1_public_key
-        private_key = ch1_private_key
-    elif channel == 4:
-        public_key = ch4_public_key
-        private_key = ch4_private_key
+    channel_cfg = config['channels'][channel]
+    if channel_cfg:
+        public_key = channel_cfg['sf_public']
+        private_key = channel_cfg['sf_private']
 
     if public_key and private_key:
         host = "data.sparkfun.com"
@@ -80,13 +75,13 @@ def parse_data_line(line):
             try:
                 publish_temperature_to_data_sparkfun(channel, temperature, humidity)
             except:
-                print "!!! Exception caught while publishing to data.sparkfun:",sys.exc_info()[0]
-
+                print "!!! Exception caught while publishing to data.sparkfun: %s" %(sys.exc_info(),)
 
 
 def decode_line(line):
     if line.startswith("D,"):
         parse_data_line(line.strip())
+
 
 def serial_data(port, baudrate):
     ser = serial.Serial(port, baudrate)
@@ -96,12 +91,25 @@ def serial_data(port, baudrate):
 
 
 def read_from_serial(port, baudrate):
+    """
+
+    :rtype : None
+    """
+    print "Reading from serial port '%s' (%d baud)" %(port, baudrate)
     for line in serial_data(port, baudrate):
-        #print line.strip() #DEBUG
+        print line.strip() #DEBUG
         try:
             decode_line(line)
         except:
             print "!!! Exception caught while reading line: %s\n%s" %(line,sys.exc_info()[0])
+
+
+def load_config(filename):
+    config_globals = {}
+    config_locals = {}
+    execfile(filename, config_globals, config_locals)
+    print "config_locals: ", config_locals
+    return config_locals
 
 
 def main(argv=None):
@@ -109,12 +117,12 @@ def main(argv=None):
         argv = sys.argv
 
     # define usage and version messages
-    usageMsg = "usage: %s [options] <serial port>" % argv[0]
-    versionMsg = """%s %s""" % (os.path.basename(argv[0]), __version__)
+    usage_msg = "usage: %s [options] <config file>" % argv[0]
+    version_msg = """%s %s""" % (os.path.basename(argv[0]), __version__)
     description = """Read meteorological data from device via serial port."""
 
     # get a parser object and define our options
-    parser = optparse.OptionParser(usage=usageMsg, version=versionMsg, description=description)
+    parser = optparse.OptionParser(usage=usage_msg, version=version_msg, description=description)
 
     # Switches
     # parser.add_option('-v', '--verbose', dest='verbose',
@@ -128,40 +136,29 @@ def main(argv=None):
     #     help="suppress output (excluding errors)")
 
     # Options expecting values
-    parser.add_option('-p', '--serialport', dest='serialport',
-        metavar="SERIAL_PORT", default="/dev/tty.usbmodem1421",
-        help="Specify serial port device for connecting with device (e.g. /dev/tty.usbmodem3d11).")
-    parser.add_option('-b', '--serialbaud', dest='serialbaud',
-        metavar="SERIAL_BAUD", default=115200,
-        help="Specify serial baud rate for connecting with device (e.g. 115200).")
-
-    parser.add_option('', '--sf_ch1_pubkey', dest='sf_ch1_pubkey',
-        help="data.sparkfun temperature ch1 public key.")
-    parser.add_option('', '--sf_ch1_prikey', dest='sf_ch1_prikey',
-        help="data.sparkfun temperature ch1 private key.")
-
-    parser.add_option('', '--sf_ch4_pubkey', dest='sf_ch4_pubkey',
-        help="data.sparkfun temperature ch4 public key.")
-    parser.add_option('', '--sf_ch4_prikey', dest='sf_ch4_prikey',
-        help="data.sparkfun temperature ch4 private key.")
-
+    parser.add_option('-p', '--serialport',
+                      dest='serialport',
+                      metavar="SERIAL_PORT",
+                      default="/dev/tty.usbmodem1421",
+                      help="Specify serial port device for connecting with device (e.g. /dev/tty.usbmodem3d11).")
+    parser.add_option('-b', '--serialbaud',
+                      dest='serialbaud',
+                      metavar="SERIAL_BAUD",
+                      default=115200,
+                      help="Specify serial baud rate for connecting with device (e.g. 115200).")
 
     # Parse options & arguments
     (options, args) = parser.parse_args(argv[1:])
 
-    global ch1_private_key, ch1_public_key
-    global ch4_private_key, ch4_public_key
+    if len(args) < 1:
+        parser.error("Not enough arguments. You must specify a config file.")
 
-    ch1_private_key = options.sf_ch1_prikey
-    ch1_public_key = options.sf_ch1_pubkey
-
-    ch4_private_key = options.sf_ch4_prikey
-    ch4_public_key = options.sf_ch4_pubkey
+    global config
+    config = load_config(args[0])
 
     port = options.serialport  # '/dev/tty.usbmodem1421'
     baud = int(options.serialbaud)  # 115200
 
-    #read_from_serial('/dev/tty.usbmodem1421', 115200)
     read_from_serial(port, baud)
 
 
